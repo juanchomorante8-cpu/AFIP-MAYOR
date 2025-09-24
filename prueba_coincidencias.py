@@ -1,18 +1,25 @@
-from config import LISTADO_CLIENTES_ID, HOJA_CLIENTES, RETENCIONES_PHYSIS_ID, HOJA_PHYSIS
-from main import leer_archivo
+from config import (
+    conectar,
+    LISTADO_CLIENTES_ID, HOJA_CLIENTES,
+    RETENCIONES_MAYOR_ID, HOJA_MAYOR,
+    RETENCIONES_ARCA_ID, HOJA_ARCA
+)
 
 def buscar_coincidencias():
-    clientes = leer_archivo(LISTADO_CLIENTES_ID, HOJA_CLIENTES)
-    physis = leer_archivo(RETENCIONES_PHYSIS_ID, HOJA_PHYSIS)
+    cliente = conectar()
 
-    clientes_set = set([fila[0] for fila in clientes[1:]])  # ignora cabecera
-    physis_set = set([fila[0] for fila in physis[1:]])
+    clientes = cliente.open_by_key(LISTADO_CLIENTES_ID).worksheet(HOJA_CLIENTES).get_all_records()
+    mayor = cliente.open_by_key(RETENCIONES_MAYOR_ID).worksheet(HOJA_MAYOR).get_all_records()
+    arca = cliente.open_by_key(RETENCIONES_ARCA_ID).worksheet(HOJA_ARCA).get_all_records()
 
-    coincidencias = clientes_set.intersection(physis_set)
-    return coincidencias
+    # 🔹 Ejemplo: comparar por campo "CUIT"
+    coincidencias = []
+    for cli in clientes:
+        for mov in mayor:
+            if cli["CUIT"] == mov["CUIT"]:
+                coincidencias.append(cli)
+
+    print("Coincidencias encontradas:", len(coincidencias))
 
 if __name__ == "__main__":
-    coincidencias = buscar_coincidencias()
-    print("🔎 Coincidencias encontradas:")
-    for c in coincidencias:
-        print(f"  - {c}")
+    buscar_coincidencias()

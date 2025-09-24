@@ -1,18 +1,25 @@
-import os
+import gspread
+from google.oauth2.service_account import Credentials
 
-# Alcances de Google Sheets
+# Ruta a las credenciales
+RUTA_CREDENCIALES = "credenciales.json"
+
+# Alcances para Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# Nombre del archivo de credenciales (asegurate de tenerlo en .gitignore)
-CREDENTIALS_FILE = "credenciales.json"
+# IDs de Dlas hojas de cálculo (ajusta según tu setup real)
+CLIENTES_ID = "1JP-tMfcKmN7zxIB8ukXsr3OUu3bGwZwfqE86QI_dhME" 
+HOJA_CLIENTES = "Cuentas Auxiliares con Datos d"
 
-# IDs de las hojas de cálculo (ejemplo, ajusta según tu setup real)
-LISTADO_CLIENTES_ID = "ID_DE_TU_HOJA_CLIENTES"
-HOJA_CLIENTES = "Hoja1"
+MAYOR_ID = "1jHHubxFvCGZcQPrUciSq7uIVI-WYoJtzSEcQ2lfaGNI" 
+HOJA_MAYOR = "Del_01_05_2024_Al_30_04_2025" 
 
-RETENCIONES_PHYSIS_ID = "ID_DE_TU_HOJA_PHYSIS"
-HOJA_PHYSIS = "Hoja1"
+ARCA_ID ="1POWukhgzQQCCvPNNXSXZ9F7nsSOL9WdKmwa8SjpATQk" 
+HOJA_ARCA = "Retenciones Impositivas"
 
-RETENCIONES_ARCA_ID = "ID_DE_TU_HOJA_ARCA"
-HOJA_ARCA = "Hoja1"
-s
+
+
+def conectar():
+    creds = Credentials.from_service_account_file(RUTA_CREDENCIALES, scopes=SCOPES)
+    cliente = gspread.authorize(creds)
+    return cliente
