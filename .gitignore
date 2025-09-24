@@ -1,11 +1,10 @@
-# Ignorar credenciales
+# Ignorar credenciales y archivos sensibles
 credenciales.json
 
 # Ignorar cachés de Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Ignorar configuraciones locales de VSCode
-.vscode/
+# Ignorar entornos virtuales
+venv/
+.env/
