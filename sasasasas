@@ -2,7 +2,6 @@ import time
 import re
 from config import conectar, CLIENTES_ID, CLIENTES_HOJA, MAYOR_ID, MAYOR_HOJA, ARCA_ID, ARCA_HOJA
 from lector import leer_clientes, leer_mayor, leer_arca
-from tqdm import tqdm
 
 # ==============================
 # Función auxiliar
@@ -17,6 +16,7 @@ def pintar_fila(ws, fila, color=(1, 1, 0)):
     rango = f"A{fila}:{chr(64 + len(ultima_col))}{fila}"  # ej: A5:N5
     try:
         ws.format(rango, {"backgroundColor": {"red": color[0], "green": color[1], "blue": color[2]}})
+        print(f"✔ Pintada fila {fila} en {ws.title}")
         time.sleep(2)  # delay entre llamadas
     except Exception as e:
         print(f"⚠️ Error pintando fila {fila}: {e}")
@@ -73,14 +73,13 @@ def main():
 
     print(f"✔ Total coincidencias finales: {len(coincidencias_finales)}\n")
 
-    # === Pintado de coincidencias con progreso ===
+    # === Pintado de coincidencias ===
     hoja_mayor = cliente.open_by_key(MAYOR_ID).worksheet(MAYOR_HOJA)
     hoja_arca = cliente.open_by_key(ARCA_ID).worksheet(ARCA_HOJA)
 
-    print("=== PINTANDO COINCIDENCIAS ===")
+    print("=== PINTADO DE COINCIDENCIAS ===")
     inicio = time.time()
-
-    for c in tqdm(coincidencias_finales, desc="Progreso", unit="fila"):
+    for c in coincidencias_finales:  # 🔥 ahora todas
         pintar_fila(hoja_mayor, c["fila_mayor"])
         pintar_fila(hoja_arca, c["fila_arca"])
 

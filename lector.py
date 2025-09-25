@@ -1,5 +1,10 @@
 import re
-from config import conectar, CLIENTES_ID, CLIENTES_HOJA, MAYOR_ID, MAYOR_HOJA, ARCA_ID, ARCA_HOJA
+from config import (
+    conectar,
+    CLIENTES_ID, CLIENTES_HOJA,
+    MAYOR_ID, MAYOR_HOJA,
+    ARCA_ID, ARCA_HOJA
+)
 
 # ==============================
 # FUNCIONES AUXILIARES
@@ -21,14 +26,18 @@ def limpiar_importe(importe_str):
 def leer_clientes(cliente):
     hoja = cliente.open_by_key(CLIENTES_ID).worksheet(CLIENTES_HOJA)
     datos = hoja.get_all_values()
-    
+
     clientes = []
-    for fila in datos[1:]:  # saltar encabezado
+    for i, fila in enumerate(datos[1:], start=2):  # arranca en fila 2
         try:
             numero = fila[1][-5:].zfill(5)  # últimos 5 dígitos de columna B
-            cuit = re.search(r"\d{11}", fila[3])  # buscar CUIT en columna D
+            cuit = re.search(r"\d{11}", fila[3])  # columna D
             if cuit:
-                clientes.append({"numero": numero, "cuit": cuit.group()})
+                clientes.append({
+                    "numero": numero,
+                    "cuit": cuit.group(),
+                    "fila": i
+                })
         except IndexError:
             continue
 
@@ -38,14 +47,13 @@ def leer_clientes(cliente):
 def leer_mayor(cliente):
     hoja = cliente.open_by_key(MAYOR_ID).worksheet(MAYOR_HOJA)
     datos = hoja.get_all_values()
+
     mayor = []
-    for fila in datos[1:]:
+    for i, fila in enumerate(datos[1:], start=2):  # arranca en fila 2
         try:
             texto = fila[8]  # Columna I
-            # Buscar número de cliente entre paréntesis
-            match_cliente = re.search(r"\((\d{5})\)", texto)
-            # Buscar fecha al final del texto (dd/mm/yyyy)
-            match_fecha = re.search(r"(\d{2}/\d{2}/\d{4})$", texto)
+            match_cliente = re.search(r"\((\d{5})\)", texto)   # nro cliente
+            match_fecha = re.search(r"(\d{2}/\d{2}/\d{4})$", texto)  # fecha
 
             if match_cliente and match_fecha:
                 importe = limpiar_importe(fila[12])  # Columna M
@@ -53,7 +61,8 @@ def leer_mayor(cliente):
                     mayor.append({
                         "numero": match_cliente.group(1),
                         "fecha": match_fecha.group(1),
-                        "importe": importe
+                        "importe": importe,
+                        "fila": i
                     })
         except IndexError:
             continue
@@ -66,7 +75,7 @@ def leer_arca(cliente):
     datos = hoja.get_all_values()
 
     arca = []
-    for fila in datos[1:]:
+    for i, fila in enumerate(datos[1:], start=2):  # arranca en fila 2
         try:
             cuit = re.search(r"\d{11}", fila[0])  # Columna A
             fecha = fila[6]  # Columna G
@@ -76,10 +85,10 @@ def leer_arca(cliente):
                 arca.append({
                     "cuit": cuit.group(),
                     "fecha": fecha,
-                    "importe": importe
+                    "importe": importe,
+                    "fila": i
                 })
         except IndexError:
             continue
 
     return arca
-

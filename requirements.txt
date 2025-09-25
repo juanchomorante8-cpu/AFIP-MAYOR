@@ -1,0 +1,10 @@
+# Librerías principales
+gspread
+google-auth
+gspread-formatting
+
+# Utilidades
+tqdm
+
+# Si necesitás manejar fechas
+python-dateutil
