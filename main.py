@@ -1,88 +1,59 @@
-import gspread
-from google.oauth2.service_account import Credentials
+from config import conectar, CLIENTES_ID, CLIENTES_HOJA, MAYOR_ID, MAYOR_HOJA, ARCA_ID, ARCA_HOJA
+from lector import leer_clientes, leer_mayor, leer_arca
+from pintar import pintar_coincidencias
 
-# ========= CONFIG =========
-from config import CLIENTES_ID, HOJA_CLIENTES, MAYOR_ID, HOJA_MAYOR, ARCA_ID, HOJA_ARCA
-
-
-
-# ========= CONEXIÓN =========
-def conectar():
-    creds = Credentials.from_service_account_file(RUTA_CREDENCIALES, scopes=SCOPES)
-    cliente = gspread.authorize(creds)
-    return cliente
-
-
-# ========= LECTURA ROBUSTA =========
-import re
-from datetime import datetime
-
-def leer_datos(ws):
-    """
-    Lee todas las filas de una worksheet, ignorando encabezados y vacías.
-    Retorna solo las que tienen datos válidos: CUIT (10 dígitos), Cliente (5 dígitos) y fecha.
-    """
-    datos = []
-    filas = ws.get_all_values()
-
-    for fila in filas:
-        # Evitar filas vacías
-        if not any(fila):
-            continue
-
-        try:
-            cuit = fila[0].strip() if len(fila) > 0 else ""
-            cliente = fila[1].strip() if len(fila) > 1 else ""
-            fecha = fila[2].strip() if len(fila) > 2 else ""
-
-            # Validar CUIT (10 dígitos numéricos)
-            if not re.fullmatch(r"\d{10}", cuit):
-                continue
-
-            # Validar Cliente (5 dígitos numéricos)
-            if not re.fullmatch(r"\d{5}", cliente):
-                continue
-
-            # Validar Fecha
-            try:
-                fecha_valida = datetime.strptime(fecha, "%d/%m/%Y")
-            except ValueError:
-                continue
-
-            # Si pasa todo, lo guardamos
-            datos.append({
-                "cuit": cuit,
-                "cliente": cliente,
-                "fecha": fecha_valida
-            })
-
-        except Exception as e:
-            # Ignoramos errores y seguimos con la siguiente fila
-            continue
-
-    return datos
-
-
-# ========= MAIN =========
 def main():
     cliente = conectar()
 
-    # --- Clientes ---
-    hoja_clientes = cliente.open_by_key(LISTADO_CLIENTES_ID).worksheet(HOJA_CLIENTES)
-    clientes = leer_datos(hoja_clientes)
-    print(f"Clientes cargados: {len(clientes)} filas")
+    # Lectura de datos
+    clientes = leer_clientes(cliente)
+    mayor = leer_mayor(cliente)
+    arca = leer_arca(cliente)
 
-    # --- Mayor ---
-    hoja_mayor = cliente.open_by_key(RETENCIONES_MAYOR_ID).worksheet(HOJA_MAYOR)
-    mayor = leer_datos(hoja_mayor)
-    print(f"Mayor cargado: {len(mayor)} filas")
+    print("=== CLIENTES ===", clientes[:5])
+    print("=== MAYOR ===", mayor[:5])
+    print("=== ARCA ===", arca[:5])
 
-    # --- Arca ---
-    hoja_arca = cliente.open_by_key(RETENCIONES_ARCA_ID).worksheet(HOJA_ARCA)
-    arca = leer_datos(hoja_arca)
-    print(f"Arca cargado: {len(arca)} filas")
+    # Vincular clientes con mayor (para obtener CUIT + movimientos)
+    clientes_dict = {c["numero"]: c["cuit"] for c in clientes}
+    clientes_mayor = []
+    for m in mayor:
+        if m["numero"] in clientes_dict:
+            clientes_mayor.append({
+                "numero": m["numero"],
+                "cuit": clientes_dict[m["numero"]],
+                "fecha": m["fecha"],
+                "importe": m["importe"]
+            })
 
-    print("✅ Conexión establecida y datos extraídos correctamente.")
+    print("\n=== CLIENTES + MAYOR ===")
+    for cm in clientes_mayor[:5]:
+        print(cm)
+
+    # Coincidencias con ARCA
+    filas_mayor = []
+    filas_arca = []
+
+    for idx_cm, cm in enumerate(clientes_mayor, start=2):  # +2 por encabezado
+        for idx_a, a in enumerate(arca, start=2):
+            mismo_cuit = cm["cuit"] == a["cuit"]
+
+            # Comparar mes/año de la fecha
+            mes_cm, anio_cm = cm["fecha"][3:10], cm["fecha"][-4:]
+            mes_a, anio_a = a["fecha"][3:10], a["fecha"][-4:]
+            misma_fecha = (mes_cm == mes_a) and (anio_cm == anio_a)
+
+            # Diferencia de importe tolerada
+            misma_plata = abs(cm["importe"] - a["importe"]) <= 1.0
+
+            if mismo_cuit and misma_fecha and misma_plata:
+                print(f"✅ Coincidencia: {cm} <-> {a}")
+                filas_mayor.append(idx_cm)
+                filas_arca.append(idx_a)
+
+    # Pintar coincidencias en ambas hojas
+    pintar_coincidencias(cliente, MAYOR_ID, MAYOR_HOJA, filas_mayor)
+    pintar_coincidencias(cliente, ARCA_ID, ARCA_HOJA, filas_arca)
 
 
 if __name__ == "__main__":
